@@ -65,7 +65,9 @@ if currentTileSet then
             focus = true,
             min=1,
             max=tileSize.width*tileSize.height/2,
-            onchange =  function() threshold = dlg.data.d_threshold end
+            onchange =  function()
+                threshold = dlg.data.d_threshold
+            end
         }
 
         dlg:check {
@@ -381,8 +383,15 @@ if currentTileSet then
 
             setsDlg = ResultDialog()
             if setsDlg then setsDlg:show { wait = false } end
-
-            --TilesCount()
+            dlg_main:modify {
+                id = "dl_found",
+                text = 0
+            }
+        else
+            dlg_main:modify {
+            id = "dl_found",
+            text = "No Matching Tiles found!"
+            }
         end
     end
 
