@@ -18,14 +18,15 @@ if currentTileSet then
     local imageCache = nil
     local byteCache = nil
 
-    local buckets = {}
-    local bucketIdx = {}
-    local master = {}
+    local buckets = nil
+    local bucketIdx = nil
+    local master = nil
 
     local found = 0
-    local selected = 0
     local page = 1
     local totPages = 0
+
+    local selected = 0
     local lastMaster = 0
     local lastSlave = 0
 
@@ -302,6 +303,24 @@ if currentTileSet then
         }
     end
 
+    function PageUpdate()
+        local s = selected
+        local ms = lastMaster
+        local sl = lastSlave
+
+        setsDlg=ResultDialog()
+        if setsDlg then
+            setsDlg:show { wait = false }
+            selected = s
+            lastMaster = ms
+            lastSlave = sl
+            dlg_main:modify {
+                id = "dl_found",
+                text = selected
+            }
+        end
+    end
+
     function ResultDialog()
         if setsDlg then
             setsDlg:close()
@@ -312,10 +331,8 @@ if currentTileSet then
         {
             title = found.." Similar Sets",
             onclose = function()
-                dlg_main:modify {
-                    id = "dl_found",
-                    text = 0
-                }
+                dlg_main:modify { id = "dl_tottiles", text = numTiles }
+                dlg_main:modify{ id = "dl_found", text = 0 }
                 dlg_main:modify{ id="dl_subst", text = "" }
                 selected = 0
                 lastMaster = 0
@@ -335,8 +352,7 @@ if currentTileSet then
             onclick = function()
                 if page > 1 then
                     page = page-1
-                    setsDlg=ResultDialog()
-                    if setsDlg then setsDlg:show { wait = false } end
+                    PageUpdate()
                 end
             end
         }
@@ -347,8 +363,7 @@ if currentTileSet then
             onclick = function()
                 if page < totPages then
                     page = page+1
-                    setsDlg=ResultDialog()
-                    if setsDlg then setsDlg:show { wait = false } end
+                    PageUpdate()
                 end
             end
         }
@@ -372,9 +387,10 @@ if currentTileSet then
         bucketIdx = {}
         master = {}
         found = 0
-        selected = 0
         page = 1
         totPages = 0
+
+        selected = 0
         lastMaster = 0
         lastSlave = 0
 
@@ -410,6 +426,25 @@ if currentTileSet then
         end
     end
 
+    function CreateResultLayer()
+        local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
+        app.sprite.gridBounds = gridRect
+
+        app.command.ConvertLayer({
+            ui = false,
+            to = "layer"
+        })
+
+        app.command.ConvertLayer({
+            --ui = false,
+            to = "tilemap"
+        })
+
+        --app.refresh()
+        currLayer = app.layer
+        currentTileSet = currLayer.tileset
+    end
+
     function TilesReplace()
         if  selected > 0 then
             local currLayer = app.layer
@@ -441,25 +476,9 @@ if currentTileSet then
 
             if substCount > 0 then
 
-                local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
-                app.sprite.gridBounds = gridRect
-
-                app.command.ConvertLayer({
-                    ui = false,
-                    to = "layer"
-                })
-
-                app.command.ConvertLayer({
-                    ui = false,
-                    to = "tilemap"
-                })
-
-                app.refresh()
-                setsDlg:close()
-                currLayer = app.layer
-                currentTileSet = currLayer.tileset
+                CreateResultLayer()
                 TilesCount()
-
+                setsDlg:close()
             end
         end
     end
