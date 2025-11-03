@@ -1,4 +1,4 @@
---Aseprite Tile Reducer v1.1 by TheRoboZ
+--Aseprite Tile Reducer v1.2 by TheRoboZ
 
 local currentTileSet = app.layer.tileset
 

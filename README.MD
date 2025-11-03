@@ -56,4 +56,4 @@ This script is provided under the MIT License. See `LICENSE` for details.
 
 ---
 
-*Version 1.1 | Last Updated: November 2025*
+*Version 1.2 | Last Updated: November 2025*
