@@ -31,139 +31,140 @@ if currentTileSet then
     local lastSlave = 0
 
     function TilesCount()
-        imageCache = {}
-        byteCache = {}
-        numTiles = 1
-        local tile = currentTileSet:tile(numTiles)
+    imageCache = {}
+    byteCache = {}
+    numTiles = 1
+    local tile = currentTileSet:tile(numTiles)
 
-        while tile do
-            imageCache[numTiles] = tile.image
-            byteCache[numTiles] = tile.image.bytes
-            numTiles = numTiles+1
-            tile = currentTileSet:tile(numTiles)
-        end
-        numTiles = numTiles-1
+    while tile do
+        imageCache[numTiles] = tile.image
+        byteCache[numTiles] = tile.image.bytes
+        numTiles = numTiles+1
+        tile = currentTileSet:tile(numTiles)
+    end
+    numTiles = numTiles-1
     end
 
     function MainDialog()
-        local dlg = Dialog { title = "Tile Reducer" }
+    local dlg = Dialog { title = "Tile Reducer" }
 
-        dlg:label {
-            id = "dl_layer",
-            label = app.layer.name,
-            text = currentTileSet.name
-        }
+    dlg:label {
+        id = "dl_layer",
+        label = app.layer.name,
+        text = currentTileSet.name
+    }
 
-        dlg:label {
-            id = "dl_tottiles",
-            label = "total tiles: ",
-            text = numTiles
-        }
+    dlg:label {
+        id = "dl_tottiles",
+        label = "total tiles: ",
+        text = numTiles
+    }
 
-        dlg:slider {
-            id = "d_threshold",
-            label = "threshold: ",
-            value = 1,
-            focus = true,
-            min=1,
-            max=tileSize.width*tileSize.height/2,
-            onchange =  function()
-                threshold = dlg.data.d_threshold
+    dlg:slider {
+        id = "d_threshold",
+        label = "threshold: ",
+        value = 1,
+        focus = true,
+        min=1,
+        max=tileSize.width*tileSize.height/2,
+        onchange =  function()
+            threshold = dlg.data.d_threshold
+        end
+    }
+
+    dlg:check {
+        id="chk_blend",
+        label="Create Diff. Layer",
+        --text="with diff blendMode"
+    }
+
+    dlg:button {
+        id = "d_find",
+        text = "FIND",
+        focus = true,
+        onclick = function() TilesFindDuplicates() end
+    }
+
+    dlg:button {
+        id = "r_apply",
+        text = "APPLY",
+        onclick = function() TilesReplace() end
+    }
+
+    dlg:canvas {
+        id="d_master",
+        width=tileWidth,
+        height=tileHeight,
+        --autoscaling=false,
+        onpaint = function(ev)
+            local gc = ev.context -- gc is a GraphicsContext
+            if lastMaster > 0 then
+            gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
             end
-        }
+        end,
+    }
 
-        dlg:check {
-            id="chk_blend",
-            label="Create Diff. Layer",
-            --text="with diff blendMode"
-        }
+    dlg:canvas {
+        id="d_slave",
+        width=tileWidth,
+        height=tileHeight,
+        --autoscaling=false,
+        onpaint = function(ev)
+            local gc = ev.context -- gc is a GraphicsContext
+            if lastSlave > 0 then
+            gc:drawImage(imageCache[lastSlave], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
+        end
+        end,
+    }
 
-        dlg:button {
-            id = "d_find",
-            text = "FIND",
-            focus = true,
-            onclick = function() TilesFindDuplicates() end
-        }
+    dlg:canvas {
+        id="d_diff",
+        width=tileWidth,
+        height=tileHeight,
+        --autoscaling=false,
+        onpaint = function(ev)
 
-        dlg:button {
-            id = "r_apply",
-            text = "APPLY",
-            onclick = function() TilesReplace() end
-        }
+            if lastMaster > 0 and lastSlave > 0 then
 
-        dlg:canvas {
-            id="d_master",
-            width=tileWidth,
-            height=tileHeight,
-            --autoscaling=false,
-            onpaint = function(ev)
-                local gc = ev.context -- gc is a GraphicsContext
-                if lastMaster > 0 then
-                gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
-                end
-            end,
-        }
+                local m_image = Image(imageCache[lastMaster])
+                local s_image = Image(imageCache[lastSlave])
 
-        dlg:canvas {
-            id="d_slave",
-            width=tileWidth,
-            height=tileHeight,
-            --autoscaling=false,
-            onpaint = function(ev)
-                local gc = ev.context -- gc is a GraphicsContext
-                if lastSlave > 0 then
-                gc:drawImage(imageCache[lastSlave], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
-            end
-            end,
-        }
-
-        dlg:canvas {
-            id="d_diff",
-            width=tileWidth,
-            height=tileHeight,
-            --autoscaling=false,
-            onpaint = function(ev)
-
-                if lastMaster > 0 and lastSlave > 0 then
-
-                    local m_image = Image(imageCache[lastMaster])
-                    local s_image = Image(imageCache[lastSlave])
-
-                    for it in s_image:pixels() do
-                        local pixelValue = it() -- get pixel
-                        local masterValue = m_image:getPixel(it.x, it.y) -- get pixel
-                        if (masterValue==pixelValue) then
-                            it(0)          -- set pixel
-                        elseif (pixelValue==0) then
-                            it(masterValue)
-                        end
+                for it in s_image:pixels() do
+                    local pixelValue = it() -- get pixel
+                    local masterValue = m_image:getPixel(it.x, it.y) -- get pixel
+                    if (masterValue==pixelValue) then
+                        it(0)          -- set pixel
+                    elseif (pixelValue==0) then
+                        it(masterValue)
                     end
-
-                    local gc = ev.context -- gc is a GraphicsContext
-                    gc.strokeWidth = 1
-                    gc.color = Color {r = 0, g = 0, b = 0, a = 255}
-                    gc:strokeRect(Rectangle(0, 0, tileWidth, tileHeight))
-                    gc:drawImage(s_image, Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
                 end
-            end,
-        }
 
-        dlg:label {
-            id = "dl_subst",
-            label = "difference: "
-        }
+                local gc = ev.context -- gc is a GraphicsContext
+                gc.strokeWidth = 1
+                gc.color = Color {r = 0, g = 0, b = 0, a = 255}
+                gc:strokeRect(Rectangle(0, 0, tileWidth, tileHeight))
+                gc:drawImage(s_image, Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
+            end
+        end,
+    }
 
-        dlg:label {
-            id = "dl_found",
-            label = "Tiles to be reduced: ",
-            text = "0"
-        }
+    dlg:label {
+        id = "dl_subst",
+        label = "difference: "
+    }
 
-        dlg:show { wait = false }
+    dlg:label {
+        id = "dl_found",
+        label = "Tiles to be reduced: ",
+        text = "0"
+    }
 
-        return dlg
+    dlg:show { wait = false }
+
+    return dlg
 
     end
+
 
     TilesCount()
     local dlg_main = MainDialog()
@@ -410,14 +411,15 @@ if currentTileSet then
         end
 
         if found>0 then
-            totPages = math.ceil(found/bucketsPerPage)
-
-            setsDlg = ResultDialog()
-            if setsDlg then setsDlg:show { wait = false } end
-            dlg_main:modify {
-                id = "dl_found",
-                text = 0
-            }
+            --app.transaction("Display Results", function()
+                totPages = math.ceil(found/bucketsPerPage)
+                setsDlg = ResultDialog()
+                if setsDlg then setsDlg:show { wait = false } end
+                dlg_main:modify {
+                    id = "dl_found",
+                    text = 0
+                }
+            --end)
         else
             dlg_main:modify {
             id = "dl_found",
@@ -465,6 +467,7 @@ if currentTileSet then
 
     function TilesReplace()
         if  selected > 0 then
+            app.transaction("Create Reduced Layer", function()
             local sprite = app.sprite
             local currLayer = app.layer
             local newTileset = sprite:newTileset(currentTileSet)
@@ -478,7 +481,7 @@ if currentTileSet then
             currLayer.tileset = newTileset
 
             if dlg_main.data.chk_blend then
-                 currLayer.blendMode = BlendMode.DIFFERENCE
+                currLayer.blendMode = BlendMode.DIFFERENCE
             end
 
             local substCount = 0
@@ -497,10 +500,11 @@ if currentTileSet then
             end
 
             if substCount > 0 then
-                CreateResultLayer(finalTileset)
-                TilesCount()
+                    CreateResultLayer(finalTileset)
+                    TilesCount()
                 setsDlg:close()
             end
+            end)
         end
     end
 
