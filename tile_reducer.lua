@@ -5,32 +5,33 @@ local currentTileSet = app.layer.tileset
 if currentTileSet then
 
     local bucketsPerPage = 16
-    local numTiles = 0
-    local imageCache = {}
-    local byteCache = {}
-
-    local threshold = 1
     local tileSize = currentTileSet.grid.tileSize
-
     local tileWidth = math.max(32, tileSize.width)
     local tileHeight = math.max(32, tileSize.height)
-    local lastMaster = 0
-    local lastSlave = 0
-
-    local buckets = {}
-    local master = {}
-    local bucketIdx = {}
-    local found = 0
-    local selected = 0
-
     local canvasWidth = math.max(20, tileSize.width+4)  -- For bucket canvases
     local canvasHeight = math.max(20, tileSize.height+4)
 
+    local threshold = 1
+
+    local numTiles = 0
+    local setsDlg = nil
+    local imageCache = nil
+    local byteCache = nil
+
+    local buckets = {}
+    local bucketIdx = {}
+    local master = {}
+
+    local found = 0
+    local selected = 0
     local page = 1
     local totPages = 0
-    local setsDlg = nil
+    local lastMaster = 0
+    local lastSlave = 0
 
     function TilesCount()
+        imageCache = {}
+        byteCache = {}
         numTiles = 1
         local tile = currentTileSet:tile(numTiles)
 
@@ -121,6 +122,7 @@ if currentTileSet then
             height=tileHeight,
             --autoscaling=false,
             onpaint = function(ev)
+
                 if lastMaster > 0 and lastSlave > 0 then
 
                     local m_image = Image(imageCache[lastMaster])
@@ -310,6 +312,15 @@ if currentTileSet then
         {
             title = found.." Similar Sets",
             onclose = function()
+                dlg_main:modify {
+                    id = "dl_found",
+                    text = 0
+                }
+                dlg_main:modify{ id="dl_subst", text = "" }
+                selected = 0
+                lastMaster = 0
+                lastSlave = 0
+                dlg_main:repaint()
             end
         }
 
@@ -357,11 +368,15 @@ if currentTileSet then
 
     function TilesFindDuplicates()
 
-        found = 0
-        page = 1
         buckets = {}
         bucketIdx = {}
         master = {}
+        found = 0
+        selected = 0
+        page = 1
+        totPages = 0
+        lastMaster = 0
+        lastSlave = 0
 
         for i=1,numTiles-1 do
             local tileImage1 = byteCache[i]
@@ -426,22 +441,25 @@ if currentTileSet then
 
             if substCount > 0 then
 
-            local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
-            app.sprite.gridBounds = gridRect
+                local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
+                app.sprite.gridBounds = gridRect
 
-            app.command.ConvertLayer({
-                ui = false,
-                to = "layer"
-            })
+                app.command.ConvertLayer({
+                    ui = false,
+                    to = "layer"
+                })
 
-            app.command.ConvertLayer({
-                ui = false,
-                to = "tilemap"
-            })
+                app.command.ConvertLayer({
+                    ui = false,
+                    to = "tilemap"
+                })
 
-            app.refresh()
-            setsDlg:close()
-            --TilesFindDuplicates()
+                app.refresh()
+                setsDlg:close()
+                currLayer = app.layer
+                currentTileSet = currLayer.tileset
+                TilesCount()
+
             end
         end
     end
