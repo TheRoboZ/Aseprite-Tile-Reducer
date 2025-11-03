@@ -93,34 +93,40 @@ if currentTileSet then
 
     dlg:canvas {
         id="d_master",
-        width=tileWidth,
-        height=tileHeight,
+        width=tileWidth+2,
+        height=tileHeight+2,
         --autoscaling=false,
         onpaint = function(ev)
-            local gc = ev.context -- gc is a GraphicsContext
             if lastMaster > 0 then
-            gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
+            local gc = ev.context -- gc is a GraphicsContext
+            gc.strokeWidth = 1
+            gc.color = Color {r = 0, g = 255, b = 0, a = 255}
+            gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
+            gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
             end
         end,
     }
 
     dlg:canvas {
         id="d_slave",
-        width=tileWidth,
-        height=tileHeight,
+        width=tileWidth+2,
+        height=tileHeight+2,
         --autoscaling=false,
         onpaint = function(ev)
-            local gc = ev.context -- gc is a GraphicsContext
             if lastSlave > 0 then
-            gc:drawImage(imageCache[lastSlave], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
+            local gc = ev.context -- gc is a GraphicsContext
+            gc.strokeWidth = 1
+            gc.color = Color {r = 0, g = 0, b = 255, a = 255}
+            gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
+            gc:drawImage(imageCache[lastSlave], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
         end
         end,
     }
 
     dlg:canvas {
         id="d_diff",
-        width=tileWidth,
-        height=tileHeight,
+        width=tileWidth+2,
+        height=tileHeight+2,
         --autoscaling=false,
         onpaint = function(ev)
 
@@ -142,8 +148,8 @@ if currentTileSet then
                 local gc = ev.context -- gc is a GraphicsContext
                 gc.strokeWidth = 1
                 gc.color = Color {r = 0, g = 0, b = 0, a = 255}
-                gc:strokeRect(Rectangle(0, 0, tileWidth, tileHeight))
-                gc:drawImage(s_image, Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(0, 0, tileWidth, tileHeight))
+                gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
+                gc:drawImage(s_image, Rectangle(2, 2, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
             end
         end,
     }
