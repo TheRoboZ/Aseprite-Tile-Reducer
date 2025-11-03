@@ -426,40 +426,61 @@ if currentTileSet then
         end
     end
 
-    function CreateResultLayer()
+    function CreateResultLayer(tileset)
         local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
         app.sprite.gridBounds = gridRect
+
+        currLayer = app.layer
 
         app.command.ConvertLayer({
             ui = false,
             to = "layer"
         })
 
+        currLayer = app.layer
+
+        app.sprite.selection:selectAll()
+        app.command.NewLayer
+        {
+            name = currLayer.name.." reduced",
+            tilemap = true,
+            viaCopy = true
+        }
+
+        app.sprite:deleteLayer(currLayer)
+
+        currLayer = app.layer
+        currLayer.tileset = tileset
+
         app.command.ConvertLayer({
-            --ui = false,
+            ui = false,
             to = "tilemap"
         })
 
-        --app.refresh()
         currLayer = app.layer
         currentTileSet = currLayer.tileset
+
+        app.refresh()
     end
 
     function TilesReplace()
         if  selected > 0 then
+            local sprite = app.sprite
             local currLayer = app.layer
-            local newTileset = app.sprite:newTileset(currentTileSet)
+            local newTileset = sprite:newTileset(currentTileSet)
             newTileset.name = currentTileSet.name .. " (copy)"
-            currLayer.tileset = newTileset
+            local finalTileset = sprite:newTileset(currentTileSet)
+            finalTileset.name = currentTileSet.name .. " (reduced)"
+
             app.command.DuplicateLayer()
-            currLayer.tileset = currentTileSet
 
             currLayer = app.layer
             currLayer.tileset = newTileset
 
             if dlg_main.data.chk_blend then
-                currLayer.blendMode = BlendMode.DIFFERENCE
+                 currLayer.blendMode = BlendMode.DIFFERENCE
             end
+
             local substCount = 0
 
             for keyTile, bucketTiles in pairs(buckets) do
@@ -469,14 +490,14 @@ if currentTileSet then
                     if isSelected  == 1 and t ~= masterIdx then
                         imageCache[t] = Image(masterImg)
                         newTileset:tile(t).image = Image(masterImg)
+                        sprite:deleteTile(finalTileset, t)
                         substCount = substCount+1
                     end
                 end
             end
 
             if substCount > 0 then
-
-                CreateResultLayer()
+                CreateResultLayer(finalTileset)
                 TilesCount()
                 setsDlg:close()
             end
