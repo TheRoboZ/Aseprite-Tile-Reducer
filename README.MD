@@ -4,6 +4,8 @@ This Aseprite script optimizes tile set size in TileMap layers by identifying gr
 
 Users can interactively select tiles within each group for replacement and designate a master tile to overwrite the selected ones, enabling efficient reduction of tile set size while maintaining visual consistency.
 
+![Script Screenshot](reducer-preview.png)
+
 ## Features
 - **Threshold-Based Similarity Detection**: Groups tiles by pixel difference thresholds to identify near-identical variants.
 - **Interactive Tile Management**: Visualize and select tiles for replacement, with clear visual indicators for masters, selections, and inspections.
