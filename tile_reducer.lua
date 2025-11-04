@@ -21,6 +21,7 @@ if currentTileSet then
     local buckets = nil
     local bucketIdx = nil
     local master = nil
+    local instances = nil
 
     local found = 0
     local page = 1
@@ -31,18 +32,41 @@ if currentTileSet then
     local lastSlave = 0
 
     function TilesCount()
-    imageCache = {}
-    byteCache = {}
-    numTiles = 1
-    local tile = currentTileSet:tile(numTiles)
+        imageCache = {}
+        byteCache = {}
+        numTiles = 1
+        local tile = currentTileSet:tile(numTiles)
 
-    while tile do
-        imageCache[numTiles] = tile.image
-        byteCache[numTiles] = tile.image.bytes
-        numTiles = numTiles+1
-        tile = currentTileSet:tile(numTiles)
+        while tile do
+            imageCache[numTiles] = tile.image
+            byteCache[numTiles] = tile.image.bytes
+            numTiles = numTiles+1
+            tile = currentTileSet:tile(numTiles)
+        end
+        numTiles = numTiles-1
     end
-    numTiles = numTiles-1
+
+    function CountInstances()
+        instances = {}
+
+        for i, cel in ipairs(app.layer.cels) do
+            local image = cel.image
+
+            -- Iterate over each tile (pixel) in row-major order
+            for pixel in image:pixels() do
+
+                local color = pixel()  -- Get the raw color value (unsigned int)
+                -- Extract tile index (0 = empty/transparent, 1+ = index in tileset)
+                local tile_index = app.pixelColor.tileI(color)
+                if (tile_index>0) then
+                    if instances[tile_index] then
+                        instances[tile_index] = instances[tile_index]+1
+                    else
+                        instances[tile_index] = 1
+                    end
+                end
+            end
+        end
     end
 
     function MainDialog()
@@ -75,7 +99,6 @@ if currentTileSet then
     dlg:check {
         id="chk_blend",
         label="Create Diff. Layer",
-        --text="with diff blendMode"
     }
 
     dlg:button {
@@ -89,22 +112,6 @@ if currentTileSet then
         id = "r_apply",
         text = "APPLY",
         onclick = function() TilesReplace() end
-    }
-
-    dlg:canvas {
-        id="d_master",
-        width=tileWidth+2,
-        height=tileHeight+2,
-        --autoscaling=false,
-        onpaint = function(ev)
-            if lastMaster > 0 then
-            local gc = ev.context -- gc is a GraphicsContext
-            gc.strokeWidth = 1
-            gc.color = Color {r = 0, g = 255, b = 0, a = 255}
-            gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
-            gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
-            end
-        end,
     }
 
     dlg:canvas {
@@ -149,14 +156,30 @@ if currentTileSet then
                 gc.strokeWidth = 1
                 gc.color = Color {r = 0, g = 0, b = 0, a = 255}
                 gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
-                gc:drawImage(s_image, Rectangle(2, 2, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
+                gc:drawImage(s_image, Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
+            end
+        end,
+    }
+
+    dlg:canvas {
+        id="d_master",
+        width=tileWidth+2,
+        height=tileHeight+2,
+        --autoscaling=false,
+        onpaint = function(ev)
+            if lastMaster > 0 then
+            local gc = ev.context -- gc is a GraphicsContext
+            gc.strokeWidth = 1
+            gc.color = Color {r = 0, g = 255, b = 0, a = 255}
+            gc:strokeRect(Rectangle(0, 0, tileWidth+2, tileHeight+2))
+            gc:drawImage(imageCache[lastMaster], Rectangle(0, 0, tileSize.width, tileSize.height), Rectangle(1, 1, tileWidth, tileHeight))
             end
         end,
     }
 
     dlg:label {
         id = "dl_subst",
-        label = "difference: "
+        label = "Will replace: "
     }
 
     dlg:label {
@@ -173,10 +196,11 @@ if currentTileSet then
 
 
     TilesCount()
+    CountInstances()
     local dlg_main = MainDialog()
 
     function updateCountLabel()
-        dlg_main:modify{ id="dl_subst", text = "from: "..lastMaster.." to "..lastSlave }
+        dlg_main:modify{ id="dl_subst", text = lastSlave.." ["..instances[lastSlave].."]     with     "..lastMaster .." ["..instances[lastMaster].."]"}
     end
 
     function stringDifference(str1, str2, maxDiff)
@@ -192,25 +216,21 @@ if currentTileSet then
     end
 
     function TilesCompare(t1, t2, t1_bytes)
-        --print("comparing tile "..t1.index.."and tile "..t2.index)
         if stringDifference(t1_bytes, byteCache[t2], threshold) <= threshold then
-            --print("tile "..t1.index.." and tile "..t2.index.." difference within threshold")
             if  not buckets[t1] then
                 for k, kv in pairs(buckets) do
                     for b, bv in pairs(kv) do
                         if (b==t1) then return end
                     end
                 end
-                --setsDlg:newrow()
+
                 buckets[t1] = {}
                 buckets[t1][t1] = 0
                 master[t1]=t1
                 found=found+1
                 bucketIdx[found]=t1
-                --print(found.." "..t1)
             end
 
-            --print("     "..t2)
             buckets[t1][t2] = 0
             --byteCache[t1] = nil
         end
@@ -253,7 +273,7 @@ if currentTileSet then
             end,
 
             onmousemove = function(ev)
-                dialog:modify{ id="res_tile", text = b }
+                dialog:modify{ id="res_tile", text = b.." ["..instances[b].."] instances" }
             end,
 
             ondblclick = function(ev)
@@ -270,7 +290,6 @@ if currentTileSet then
                     end
                 end
                 dialog:repaint()
-                --dlg_main:repaint()
                 dlg_main:modify {
                     id = "dl_found",
                     text = selected
@@ -404,28 +423,20 @@ if currentTileSet then
         for i=1,numTiles-1 do
             local tileImage1 = byteCache[i]
             if tileImage1 then
-                --print("t1 is "..tileImage.index)
                 for j=i+1,numTiles do
-                    --print("t2 is "..tileImage2.index)
-                    --if tileImage1 and tileImage2 then
                     TilesCompare(i,j,tileImage1)
-                    --end
                 end
-            --else
-                --break
             end
         end
 
         if found>0 then
-            --app.transaction("Display Results", function()
-                totPages = math.ceil(found/bucketsPerPage)
-                setsDlg = ResultDialog()
-                if setsDlg then setsDlg:show { wait = false } end
-                dlg_main:modify {
-                    id = "dl_found",
-                    text = 0
-                }
-            --end)
+            totPages = math.ceil(found/bucketsPerPage)
+            setsDlg = ResultDialog()
+            if setsDlg then setsDlg:show { wait = false } end
+            dlg_main:modify {
+                id = "dl_found",
+                text = 0
+            }
         else
             dlg_main:modify {
             id = "dl_found",
