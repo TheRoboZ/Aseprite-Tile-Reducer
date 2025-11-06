@@ -1,3 +1,8 @@
+# A collection of Aseprite scripts useful for sgdk development
+
+# Tile Reducer for Aseprite TileMaps
+# Tile Priority for SGDK tileMaps/Maps
+
 # Tile Reducer for Aseprite TileMaps
 
 This Aseprite script optimizes tile set size in TileMap layers by identifying groups of tiles with minimal pixel differences, based on a user-defined threshold. It leverages Aseprite's native TileMap support to preserve existing tile symmetry within the map.
@@ -50,11 +55,40 @@ Follow these steps to run the script and optimize your TileMap:
 - Only operates on selected TileMap layers; other layer types are ignored.
 - Large tile sets may require multiple pages—use navigation efficiently.
 
-## Contributing
+# Tile Priority for SGDK tileMaps/Maps
+
+This Aseprite Lua script modifies pixels in a target image layer based on a tilemap layer.
+It processes pixels in areas covered by non-empty tiles (index > 0) in the priority tilemap layer, setting pixels in the target layer for high priority (or low priority on empty tiles) by setting/clearing bit 7 in their 8-bit color indices, according to SGDK TileMap specification.
+A copy of the original layer is preserved. Works on the active frame only. Note: bit 6 is always set to 0.
+
+## Prerequisites
+- Aseprite (v1.2.7+ recommended for tilemaps).
+- Sprite in Indexed color mode (8-bit palette).
+- At least one tilemap layer (with a tileset) and one image layer.
+- Cels in both layers on the active frame.
+
+## InstallationSave the script as tilemap_pixel_modifier.lua in your Aseprite scripts folder:
+- Windows: %APPDATA%\Aseprite\scripts\
+- macOS: ~/Library/Application Support/Aseprite/scripts/
+- Linux: ~/.config/aseprite/scripts/
+
+## Usage
+1. Open your sprite in Aseprite and select the frame to process.
+2. Run the script: **File > Scripts > tilemap_pixel_modifier** (or bind to a hotkey).
+3. In the dialog:
+   - **Tilemap Layer**: Select your source tilemap layer from the dropdown.
+   - **Target Layer**: Select your image layer.
+   The label below show the cel's bounds (position and size) for the active frame, updating on selection.
+4. Click **OK**. The script validates selections (e.g., ensures source is tilemap, target has a cel).
+5. Processing happens automatically:
+   - Scans the tilemap for tiles (ignores empty cells, index 0).
+   - For each covered area, modifies non-transparent pixels in the target layer as described.
+
+### Contributing
 If you encounter issues or have suggestions, please open an issue or submit a pull request on the project's repository.
 
-## License
-This script is provided under the MIT License. See `LICENSE` for details.
+### License
+This scripts are provided under the MIT License. See `LICENSE` for details.
 
 ---
 
