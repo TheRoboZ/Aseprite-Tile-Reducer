@@ -1,7 +1,7 @@
 # A collection of Aseprite scripts useful for sgdk development
 
-# Tile Reducer for Aseprite TileMaps
-# Tile Priority for SGDK tileMaps/Maps
+- Tile Reducer for Aseprite TileMaps
+- Tile Priority for SGDK tileMaps/Maps
 
 # Tile Reducer for Aseprite TileMaps
 
@@ -60,6 +60,8 @@ Follow these steps to run the script and optimize your TileMap:
 This Aseprite Lua script modifies pixels in a target image layer based on a tilemap layer.
 It processes pixels in areas covered by non-empty tiles (index > 0) in the priority tilemap layer, setting pixels in the target layer for high priority (or low priority on empty tiles) by setting/clearing bit 7 in their 8-bit color indices, according to SGDK TileMap specification.
 A copy of the original layer is preserved. Works on the active frame only. Note: bit 6 is always set to 0.
+
+![Script Screenshot](priority-preview.png)
 
 ## Prerequisites
 - Aseprite (v1.2.7+ recommended for tilemaps).
