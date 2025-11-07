@@ -44,6 +44,8 @@ local function getBoundsText(layer, frame)
   return string.format("Cel Pos: (%d,%d) Size: %dx%d", pos.x, pos.y, img.width, img.height)
 end
 
+local palette = sprite.palettes[1]
+
 -- Create dialog
 local dlg = Dialog("SGDK Tile Priority Modifier")
 dlg:combobox{
@@ -75,7 +77,7 @@ dlg:newrow{always = false}
 dlg:button{ id = "confirm", text = "&OK", focus = true }
    :button{ id = "cancel",  text = "&Cancel", onclick = function() dlg:close() end }
 
-dlg:label{ id = "warn", text  = "Pay attention to layers/cels origins!"
+dlg:label{ id = "warn", label=#palette.." colors will be expanded to 192", text  = "Pay attention to layers/cels origins!"
 }
 
 dlg:show()
@@ -86,6 +88,31 @@ if data.cancel or not data.confirm then
 end
 
 app.transaction("Adjust Priority", function()
+
+  --local palette = sprite.palettes[1]
+
+  --make sure we have at least 64 slots
+  if #palette < 192 then
+    app.command.PaletteSize {
+      ui=false,
+      size=192
+    }
+  end
+
+  --local palette = sprite.palettes[1]
+
+  for i=64 , 127 do
+    palette:setColor(i, Color{ r=255, g=0, b=255, a=255 })
+  end
+
+  app.refresh()  -- Refresh the view
+
+  for i=128, 128+63 do
+    palette:setColor(i, palette:getColor(i-128))
+  end
+
+  local color = palette:getColor(index)
+  --Returns the color in the given entry index (the index goes from 0 to #palette-1).
 
     -- Find selected layers
     local sourceLayer, targetLayer
