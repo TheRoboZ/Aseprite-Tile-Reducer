@@ -17,13 +17,20 @@ if sprite.colorMode ~= ColorMode.INDEXED then
 end
 
 -- Collect layer names
-local layerNames = {}
+local targetlayerNames = {}
+local masklayerNames = {}
 for _, layer in ipairs(sprite.layers) do
-  table.insert(layerNames, layer.name)
+  if (layer.isImage) then
+    table.insert(targetlayerNames, layer.name)
+  elseif (layer.isTilemap) then
+    table.insert(masklayerNames, layer.name)
+  end
 end
 
-if #layerNames < 2 then
-  return app.alert("You need at least 2 layers, a tilemap mask and a target image!")
+table.insert(masklayerNames, "Auto")
+
+if #targetlayerNames == 0 then
+  return app.alert("You need at least 1 image layer")
 end
 
 local function findLayerByName(name)
@@ -46,41 +53,48 @@ end
 
 local palette = sprite.palettes[1]
 
--- Create dialog
-local dlg = Dialog("SGDK Tile Priority Modifier")
-dlg:combobox{
-  id = "source",
-  label = "Priority Layer:",
-  options = layerNames,
-  option = layerNames[#layerNames],
-  onchange = function()
-    dlg:modify{id = "sourceBounds",text = getBoundsText(findLayerByName(dlg.data.source), frame) }
-  end
-}
-dlg:label{ id = "sourceBounds", text =  getBoundsText(findLayerByName(dlg.data.source), frame) }
+local function CreateDialog()
 
-dlg:newrow{always = false}
+  local dlg = Dialog("SGDK Tile Priority Modifier")
 
-dlg:combobox{
-  id = "target",
-  label = "Target Layer:",
-  options = layerNames,
-  option = layerNames[1],
-  onchange = function()
-    dlg:modify{id = "targetBounds", text = getBoundsText(findLayerByName(dlg.data.target), frame) }
-  end
-}
-dlg:label{ id = "targetBounds", text = getBoundsText(findLayerByName(dlg.data.target), frame) }
-dlg:newrow{always = false}
-dlg:separator()
-dlg:newrow{always = false}
-dlg:button{ id = "confirm", text = "&OK", focus = true }
-   :button{ id = "cancel",  text = "&Cancel", onclick = function() dlg:close() end }
+  dlg:combobox{
+    id = "source",
+    label = "Priority Layer:",
+    options = masklayerNames,
+    option = masklayerNames[#targetlayerNames],
+    onchange = function()
+      dlg:modify{id = "sourceBounds",text = getBoundsText(findLayerByName(dlg.data.source), frame) }
+    end
+  }
+  dlg:label{ id = "sourceBounds", text =  getBoundsText(findLayerByName(dlg.data.source), frame) }
 
-dlg:label{ id = "warn", label=#palette.." colors will be expanded to 192", text  = "Pay attention to layers/cels origins!"
-}
+  dlg:newrow{always = false}
 
-dlg:show()
+  dlg:combobox{
+    id = "target",
+    label = "Target Layer:",
+    options = targetlayerNames,
+    option = targetlayerNames[1],
+    onchange = function()
+      dlg:modify{id = "targetBounds", text = getBoundsText(findLayerByName(dlg.data.target), frame) }
+    end
+  }
+  dlg:label{ id = "targetBounds", text = getBoundsText(findLayerByName(dlg.data.target), frame) }
+  dlg:newrow{always = false}
+  dlg:separator()
+  dlg:newrow{always = false}
+  dlg:button{ id = "confirm", text = "&OK", focus = true }
+    :button{ id = "cancel",  text = "&Cancel", onclick = function() dlg:close() end }
+
+  dlg:label{ id = "warn", label=#palette.." colors will be expanded to 192", text  = "Pay attention to layers/cels origins!"
+  }
+
+  dlg:show()
+  return dlg
+end
+
+
+local dlg = CreateDialog()
 
 local data = dlg.data
 if data.cancel or not data.confirm then
@@ -124,108 +138,166 @@ app.transaction("Adjust Priority", function()
     end
     end
 
-    if not sourceLayer or not targetLayer then
-    return app.alert("Selected layers not found.")
-    end
-
-    if not sourceLayer.isTilemap then
-    return app.alert("Source layer must be a tilemap layer.")
+    if not targetLayer then
+      return app.alert("Selected image layer not found.")
     end
 
     if not targetLayer.isImage then
-    return app.alert("Target layer must be an image layer.")
+      return app.alert("Target layer must be an image layer.")
     end
 
-    -- Duplicate the target layer
-    local originalTarget = targetLayer
-    app.activeLayer = originalTarget
-    app.command.DuplicateLayer()
-    targetLayer = app.layer
-    targetLayer.name = originalTarget.name .. " (processed)"
+    if not data.source == "Auto" then
+      if not sourceLayer then
+        return app.alert("Selected image layer not found.")
+      end
 
-    local frame = app.activeFrame
+      if not sourceLayer.isTilemap then
+        return app.alert("Source layer must be a tilemap layer.")
+      end
 
-    local sourceCel = sourceLayer:cel(frame)
-    if not sourceCel then
-    return app.alert("No cel in source layer at current frame.")
-    end
+      -- Duplicate the target layer
+      local originalTarget = targetLayer
+      app.activeLayer = originalTarget
+      app.command.DuplicateLayer()
+      targetLayer = app.layer
+      targetLayer.name = originalTarget.name .. " (processed)"
 
-    local targetCel = targetLayer:cel(frame)
-    if not targetCel then
-    return app.alert("No cel in target layer at current frame.")
-    end
+      local frame = app.activeFrame
 
-    local tileset = sourceLayer.tileset
-    if not tileset then
-    return app.alert("No tileset in tilemap layer.")
-    end
+      local sourceCel = sourceLayer:cel(frame)
+      if not sourceCel then
+      return app.alert("No cel in source layer at current frame.")
+      end
 
-    local grid = tileset.grid
-    local tileSize = grid.tileSize
-    local tileW = tileSize.w
-    local tileH = tileSize.h
+      local targetCel = targetLayer:cel(frame)
+      if not targetCel then
+      return app.alert("No cel in target layer at current frame.")
+      end
 
-    -- Iterate over tilemap cells
-    local targetImg = targetCel.image
-    local mapImg = sourceCel.image
-    local modifiedCount = 0
+      local tileset = sourceLayer.tileset
+      if not tileset then
+      return app.alert("No tileset in tilemap layer.")
+      end
 
-    local sourceOrigin =  sourceCel.bounds
-    local targetOrigin =  targetCel.bounds
+      local grid = tileset.grid
+      local tileSize = grid.tileSize
+      local tileW = tileSize.w
+      local tileH = tileSize.h
 
-    for mapY = 0, mapImg.height - 1 do
-        local targetYoff = sourceOrigin.y + mapY * tileH - targetOrigin.y
-        for mapX = 0, mapImg.width - 1 do
+      -- Iterate over tilemap cells
+      local targetImg = targetCel.image
+      local mapImg = sourceCel.image
+      local modifiedCount = 0
 
-            local tileColor = mapImg:getPixel(mapX, mapY)
-            local tileIndex = app.pixelColor.tileI(tileColor)
-            local targetXoff = sourceOrigin.x + mapX * tileW - targetOrigin.x
+      local sourceOrigin =  sourceCel.bounds
+      local targetOrigin =  targetCel.bounds
 
-            if tileIndex > 0 then
-               --print("cel "..mapX.." "..mapY.." "..targetXoff.." "..targetYoff)
-            -- For this tile position, process pixels in target layer
-                for dy = 0, tileH - 1 do
-                    for dx = 0, tileW - 1 do
+      for mapY = 0, mapImg.height - 1 do
+          local targetYoff = sourceOrigin.y + mapY * tileH - targetOrigin.y
+          for mapX = 0, mapImg.width - 1 do
 
-                        local targetX = targetXoff + dx
-                        local targetY = targetYoff + dy
+              local tileColor = mapImg:getPixel(mapX, mapY)
+              local tileIndex = app.pixelColor.tileI(tileColor)
+              local targetXoff = sourceOrigin.x + mapX * tileW - targetOrigin.x
 
-                        if targetX < targetImg.width and targetY < targetImg.height then
-                            local col = targetImg:getPixel(targetX, targetY)
-                            if col ~= 0 then  -- Skip transparent pixels
-                                -- Modify color index: set bit 7 (128) to 1, bit 6 (64) to 0
+              if tileIndex > 0 then
+                --print("cel "..mapX.." "..mapY.." "..targetXoff.." "..targetYoff)
+              -- For this tile position, process pixels in target layer
+                  for dy = 0, tileH - 1 do
+                      for dx = 0, tileW - 1 do
 
-                                local newCol = col | 128
-                                newCol = newCol & ~64
+                          local targetX = targetXoff + dx
+                          local targetY = targetYoff + dy
 
-                                targetImg:putPixel(targetX, targetY, newCol)
-                                modifiedCount = modifiedCount + 1
-                            end
-                        end
-                    end
+                          if targetX < targetImg.width and targetY < targetImg.height then
+                              local col = targetImg:getPixel(targetX, targetY)
+                              if col ~= 0 then  -- Skip transparent pixels
+                                  -- Modify color index: set bit 7 (128) to 1, bit 6 (64) to 0
+
+                                  local newCol = col | 128
+                                  newCol = newCol & ~64
+
+                                  targetImg:putPixel(targetX, targetY, newCol)
+                                  modifiedCount = modifiedCount + 1
+                              end
+                          end
+                      end
+                  end
+              else
+                  for dy = 0, tileH - 1 do
+                      for dx = 0, tileW - 1 do
+
+                          local targetX = targetXoff + dx
+                          local targetY = targetYoff + dy
+
+                          if targetX < targetImg.width and targetY < targetImg.height then
+                          local col = targetImg:getPixel(targetX, targetY)
+                              if col ~= 0 then  -- Skip transparent pixels
+                                  -- Modify color index: set bit 7 (128) to 1, bit 6 (64) to 0
+                                  local newCol = col & ~128
+                                  newCol = newCol & ~64
+                                  targetImg:putPixel(targetX, targetY, newCol)
+                                  modifiedCount = modifiedCount + 1
+                              end
+                          end
+                      end
+                  end
+              end
+          end
+      end
+    else
+      -- Duplicate the mask layer
+      sourceLayer = sprite:newLayer()
+      sourceLayer.name = targetLayer.name .. " (mask)"
+      local frame = app.activeFrame
+
+      local targetCel = targetLayer:cel(frame)
+      if not targetCel then
+      return app.alert("No cel in target layer at current frame.")
+      end
+
+      local tileW = 8
+      local tileH = 8
+
+      local sourceCel = sprite:newCel(sourceLayer, frame)
+
+      -- Iterate over tilemap cells
+      local targetImg = targetCel.image
+      local mapImg = sourceCel.image
+      local modifiedCount = 0
+
+      local sourceOrigin =  sourceCel.bounds
+      local targetOrigin =  targetCel.bounds
+
+      for mapY = 0, targetImg.height - 1 do
+        for mapX = 0, targetImg.width - 1 do
+          local PixelColor = targetImg:getPixel(mapX, mapY)
+
+          if (PixelColor>127) then
+            local tileX = (mapX//tileW)*tileW
+            local tileY = (mapY//tileH)*tileH
+
+            if (mapImg:getPixel(mapX, mapY)==0) then
+
+              for pY = tileY, tileY+7 do
+                for pX = tileX, tileX+7 do
+                  mapImg:drawPixel(pX, pY, 1)
                 end
-            else
-                for dy = 0, tileH - 1 do
-                    for dx = 0, tileW - 1 do
+              end
 
-                        local targetX = targetXoff + dx
-                        local targetY = targetYoff + dy
+              mapX=tileX+tileW-1
 
-                        if targetX < targetImg.width and targetY < targetImg.height then
-                        local col = targetImg:getPixel(targetX, targetY)
-                            if col ~= 0 then  -- Skip transparent pixels
-                                -- Modify color index: set bit 7 (128) to 1, bit 6 (64) to 0
-                                local newCol = col & ~128
-                                newCol = newCol & ~64
-                                targetImg:putPixel(targetX, targetY, newCol)
-                                modifiedCount = modifiedCount + 1
-                            end
-                        end
-                    end
-                end
-
+              modifiedCount = modifiedCount+1
             end
+          end
         end
+      end
+
+      app.command.ConvertLayer({
+        ui = false,  -- Shows the tileset properties dialog
+        to = "tilemap"
+      })
+
     end
 
 end)
