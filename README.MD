@@ -59,6 +59,7 @@ Follow these steps to run the script and optimize your TileMap:
 
 This Aseprite Lua script modifies pixels in a target image layer based on a tilemap layer.
 It processes pixels in areas covered by non-empty tiles (index > 0) in the priority tilemap layer, setting pixels in the target layer for high priority (or low priority on empty tiles) by setting/clearing bit 7 in their 8-bit color indices, according to SGDK TileMap specification.
+OR it can recontstruct a priority mask layer from existing pixel data.
 A copy of the original layer is preserved. Works on the active frame only. Note: bit 6 is always set to 0.
 
 ![Script Screenshot](priority-preview.png)
@@ -66,7 +67,7 @@ A copy of the original layer is preserved. Works on the active frame only. Note:
 ## Prerequisites
 - Aseprite (v1.2.7+ recommended for tilemaps).
 - Sprite in Indexed color mode (8-bit palette).
-- At least one tilemap layer (with a tileset) and one image layer.
+- One image layer.
 - Cels in both layers on the active frame.
 
 ## InstallationSave the script as tilemap_pixel_modifier.lua in your Aseprite scripts folder:
@@ -78,7 +79,7 @@ A copy of the original layer is preserved. Works on the active frame only. Note:
 1. Open your sprite in Aseprite and select the frame to process.
 2. Run the script: **File > Scripts > tilemap_pixel_modifier** (or bind to a hotkey).
 3. In the dialog:
-   - **Tilemap Layer**: Select your source tilemap layer from the dropdown.
+   - **Tilemap Layer**: Select your source tilemap layer from the dropdown (or leave AUTO to regenerate existing priority mask from image pixel data).
    - **Target Layer**: Select your image layer.
    The label below show the cel's bounds (position and size) for the active frame, updating on selection.
 4. Click **OK**. The script validates selections (e.g., ensures source is tilemap, target has a cel).
