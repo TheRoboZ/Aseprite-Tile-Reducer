@@ -110,7 +110,14 @@ function MainDialog()
 
     dlg:button {
         id = "d_find",
-        text = "FIND",
+        text = "FIND by COUNT",
+        focus = true,
+        onclick = function() TilesFindCount() end
+    }
+
+    dlg:button {
+        id = "d_find",
+        text = "FIND SIMILAR",
         focus = true,
         onclick = function() TilesFindDuplicates() end
     }
@@ -282,7 +289,9 @@ function DuplicateAddtoCanvas(dialog, k, b)
         onmousemove = function(ev)
             if onTile ~=b then
                 dialog:modify{ id="res_tile", text = b.." ["..instances[b].."] instances" }
-                highlightTiles(b)
+                if instances[b]<256 then
+                    highlightTiles(b)
+                end
                 onTile = b
             end
         end,
@@ -452,10 +461,54 @@ function TilesFindDuplicates()
     else
         dlg_main:modify {
         id = "dl_found",
-        text = "No Matching Tiles found!"
+        text = "No Matching Tiles Found!"
         }
     end
 end
+
+function TilesFindCount()
+
+    buckets = {}
+    bucketIdx = {}
+    master = {}
+    found = 0
+    page = 1
+    totPages = 0
+
+    selected = 0
+    lastMaster = 0
+    lastSlave = 0
+
+    for i=1,numTiles-1 do
+        local tileImage1 = byteCache[i]
+        if tileImage1 then
+            if instances[i] <= threshold then
+                if not buckets[i] then
+                    buckets[i] = {}
+                    buckets[i][i] = 0
+                    found=found+1
+                    bucketIdx[found]=i
+                end
+            end
+        end
+    end
+
+    if found>0 then
+        totPages = math.ceil(found/bucketsPerPage)
+        setsDlg = ResultDialog()
+        if setsDlg then setsDlg:show { wait = false } end
+        dlg_main:modify {
+            id = "dl_found",
+            text = 0
+        }
+    else
+        dlg_main:modify {
+        id = "dl_found",
+        text = "No Tiles Found!"
+        }
+    end
+end
+
 
 function CreateResultLayer(tileset)
     local gridRect = Rectangle(0, 0, tileSize.width, tileSize.height)
@@ -565,7 +618,7 @@ function highlightTiles(tile)
             local sourceXoff = sourceOrigin.x + mapX * tileSize.width
 
             if tileIndex == tile then
-                selection:add({sourceXoff, sourceYoff, tileSize.width-1, tileSize.height-1})
+                selection:add({sourceXoff, sourceYoff, tileSize.width, tileSize.height})
             end
         end
     end
