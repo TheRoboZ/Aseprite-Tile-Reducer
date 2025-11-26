@@ -5,6 +5,7 @@ if not app.activeSprite then
 end
 
 local currentTileSet = app.layer.tileset
+local mode
 
 if not currentTileSet then
  return app.alert("TileReducer ERROR: Selected Layer is not a TileMap!")
@@ -297,27 +298,30 @@ function DuplicateAddtoCanvas(dialog, k, b)
         end,
 
         ondblclick = function(ev)
-            if buckets[k][b] == 1 then
-                buckets[k][b] = 0
-                selected = selected-1
-            else
-                buckets[k][b] = 1
-                selected = selected+1
-                if b~=lastMaster then
-                    lastSlave = b
-                    lastMaster = master[k]
-                    updateCountLabel()
+            if mode == "dupes" then
+                if buckets[k][b] == 1 then
+                    buckets[k][b] = 0
+                    selected = selected-1
+                else
+                    buckets[k][b] = 1
+                    selected = selected+1
+                    if b~=lastMaster then
+                        lastSlave = b
+                        lastMaster = master[k]
+                        updateCountLabel()
+                    end
                 end
+                dialog:repaint()
+                dlg_main:modify {
+                    id = "dl_found",
+                    text = selected
+                }
             end
-            dialog:repaint()
-            dlg_main:modify {
-                id = "dl_found",
-                text = selected
-            }
         end,
 
         onmouseup = function(ev)
-            if ev.button == MouseButton.RIGHT then
+            if mode == "dupes" then
+                if ev.button == MouseButton.RIGHT then
                 if b ~= master[k] then
                     master[k] = b
                     lastMaster = b
@@ -332,7 +336,7 @@ function DuplicateAddtoCanvas(dialog, k, b)
                     dialog:repaint()
                     dlg_main:repaint()
                 end
-            elseif ev.button == MouseButton.LEFT then
+                elseif ev.button == MouseButton.LEFT then
                 lastMaster = master[k]
                 if b==master[k] then
                     n = next(buckets[k], b)
@@ -344,6 +348,7 @@ function DuplicateAddtoCanvas(dialog, k, b)
                 updateCountLabel()
                 dialog:repaint()
                 dlg_main:repaint()
+                end
             end
         end
     }
@@ -429,7 +434,7 @@ function ResultDialog()
 end
 
 function TilesFindDuplicates()
-
+    mode = "dupes"
     buckets = {}
     bucketIdx = {}
     master = {}
@@ -467,7 +472,7 @@ function TilesFindDuplicates()
 end
 
 function TilesFindCount()
-
+    mode = "count"
     buckets = {}
     bucketIdx = {}
     master = {}
