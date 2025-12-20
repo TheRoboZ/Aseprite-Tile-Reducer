@@ -109,7 +109,7 @@ local function saveSlices(w, h, s)
                     sh = snapToMultiple(sh, 8);
                 end
 
-                local line = string.format("%d %d %d %d", b.x-(py*w), b.y-(px*h), b.x+sw-1-(py*w), b.y+sh-1-(px*h))
+                local line = string.format("%d %d %d %d", b.x-(py*w), b.y-(px*h), sw, sh)
 
                 -- local center = slice.center
                 -- if center and not center.isEmpty then
@@ -151,7 +151,7 @@ local function createDialog()
         label = "Width :",
         min=8,
         max=256,
-        value=16,
+        value=w,
         focus = true,
         onchange = function()
             local val = dlg.data.width
@@ -160,6 +160,7 @@ local function createDialog()
                 snapped = math.max(8, math.min(256, snapped))
                 if snapped ~= val then
                     dlg:modify{ id = "width", value = snapped }
+                    w = snapped
                 end
             end
         end
@@ -170,7 +171,7 @@ local function createDialog()
         label = "Height:",
         min=8,
         max=256,
-        value=16,
+        value=h,
         onchange = function()
             local val = dlg.data.height
             if val and val >= 1 then
@@ -178,6 +179,7 @@ local function createDialog()
                 snapped = math.max(8, math.min(256, snapped))
                 if snapped ~= val then
                     dlg:modify{ id = "height", value = snapped }
+                    h = snapped
                 end
             end
         end
