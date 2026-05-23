@@ -17,6 +17,8 @@ Users can interactively select tiles within each group for replacement and desig
 - **Non-Destructive Workflow**: Generates a new TileMap layer for the optimized result, allowing iterative refinements without altering originals.
 - **Visual Diff Support**: Optional difference blending mode for quick inspection of changes.
 
+[check this great video by Pigsy showing how to use the script](https://youtu.be/GIXeM5o27qM?si=In5GSQyw0SIvof0x)
+
 ## Requirements
 - Aseprite (version supporting TileMaps, e.g., v1.2.7 or later).
 - A project with at least one TileMap layer.
